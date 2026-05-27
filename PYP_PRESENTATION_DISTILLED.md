@@ -44,18 +44,13 @@ A sample **G ~ DP(θ, G₀)** is itself a random discrete probability distributi
 
 **Pólya urn — one-parameter CRP:** Given N observations assigned to clusters so far (with c_k observations in cluster k):
 
-```
-New observation joins cluster k  with probability:  c_k  / (θ + N)
-New observation starts cluster   with probability:  θ    / (θ + N)
-```
+$$P(\text{join table } k) = \frac{c_k}{\theta + N}, \qquad P(\text{open new table}) = \frac{\theta}{\theta + N}$$
 
 **The fundamental limitation.** Under the DP, the expected number of unique clusters after N observations grows as:
 
-```
-E[K_N]  ~  θ · log(N)           (logarithmic growth)
-```
+$$E[K_N] \sim \theta \cdot \log(N) \qquad \text{(logarithmic growth)}$$
 
-Natural language, concept inventories, and knowledge bases all exhibit **power-law** growth in unique types — O(N^d) for d ∈ (0,1). The DP predicts growth that is structurally too slow: it systematically under-represents the long tail of rare items. One additional parameter fixes this entirely.
+Natural language, concept inventories, and knowledge bases all exhibit **power-law** growth in unique types — $O(N^d)$ for $d \in (0,1)$. The DP predicts growth that is structurally too slow: it systematically under-represents the long tail of rare items. One additional parameter fixes this entirely.
 
 ---
 
@@ -71,20 +66,18 @@ The **Pitman-Yor Process (PYP)** (Pitman & Yor, 1997) extends the DP with a seco
 
 **G ~ PYP(d, θ, G₀)** is again a random discrete distribution. When **d = 0**, the PYP reduces exactly to the DP. When **d > 0**, the expected unique-type count after N observations grows as:
 
-```
-E[K_N]  ~  θ · N^d              (power-law growth = Zipf's law)
-```
+$$E[K_N] \sim \theta \cdot N^d \qquad \text{(power-law growth = Zipf's law)}$$
 
-**Numerical comparison** (θ = 1, d = 0.75, N = 10,000):
+**Numerical comparison** ($\theta = 1$, $d = 0.75$, $N = 10{,}000$):
 
-```
-DP  (d = 0):   E[K_N] ≈ ln(10,000)    ≈       9  unique types
-PYP (d > 0):   E[K_N] ≈ 10,000^0.75   ≈   1,000  unique types
-```
+$$\begin{aligned}
+\text{DP } (d=0): &\quad E[K_N] \approx \ln(10{,}000) \approx 9 \text{ unique types} \\
+\text{PYP } (d>0): &\quad E[K_N] \approx 10{,}000^{0.75} \approx 1{,}000 \text{ unique types}
+\end{aligned}$$
 
 The difference is qualitative, not marginal. With the DP, the model implicitly treats rare items as noise; with the PYP, they are correctly modelled as legitimate low-frequency atoms. This matters most precisely where a symbolic AI system needs to be reliable: domain-specific entities, rare rules, novel concepts.
 
-> **d is not a tuning knob.** It is a description of how knowledge is distributed in the world. For natural language, d ≈ 0.75. The same range fits medical ontologies and software API surface areas.
+> **d is not a tuning knob.** It is a description of how knowledge is distributed in the world. For natural language, $d \approx 0.75$. The same range fits medical ontologies and software API surface areas.
 
 ---
 
@@ -92,20 +85,21 @@ The difference is qualitative, not marginal. With the DP, the model implicitly t
 
 The PYP can be constructed explicitly by the **stick-breaking** procedure, which generates the probability weights p₁, p₂, … over a countably infinite set of atoms:
 
-```
-Step 1 — draw stick fractions:
-  V_k  ~  Beta(1 − d,  θ + k·d),    k = 1, 2, 3, ...
+**Step 1** — draw stick fractions:
 
-Step 2 — assign weights:
-  p_1   = V_1
-  p_k   = V_k · ∏_{i=1}^{k-1} (1 − V_i),    k ≥ 2
+$$V_k \sim \text{Beta}(1 - d,\; \theta + k \cdot d), \quad k = 1, 2, 3, \ldots$$
 
-Step 3 — draw atoms from the base:
-  Atom_k  ~  G₀  (i.i.d.)
+**Step 2** — assign weights:
 
-Step 4 — the random discrete distribution:
-  G  =  Σ_k  p_k · δ_{Atom_k}
-```
+$$p_1 = V_1, \qquad p_k = V_k \prod_{i=1}^{k-1}(1 - V_i), \quad k \geq 2$$
+
+**Step 3** — draw atoms from the base:
+
+$$\text{Atom}_k \sim G_0 \quad \text{(i.i.d.)}$$
+
+**Step 4** — the random discrete distribution:
+
+$$G = \sum_k p_k \, \delta_{\text{Atom}_k}$$
 
 where δ_{x} is the point mass at x (equals 1 if the argument matches x, 0 otherwise). The construction reveals why d matters: the Beta distribution for V_k shifts with k in a way that slows the decay of p_k for larger k — producing heavier tails and more non-negligible atoms. When d = 0 the Beta reduces to Beta(1, θ) and the Sethuraman (1994) stick-breaking for the DP is recovered.
 
@@ -127,13 +121,9 @@ The **two-parameter Chinese Restaurant Process (CRP)** (Pitman, 1996) is the seq
 
 **Seating rule for customer N+1:**
 
-```
-Join existing table k  with probability:  (c_k − d) / (θ + N)
-                                          ↑ rich-gets-richer, penalised by d
+$$P(\text{join table } k) = \frac{c_k - d}{\theta + N} \qquad \text{(rich-gets-richer, penalised by } d\text{)}$$
 
-Open a new table       with probability:  (θ + d · T) / (θ + N)
-                                          ↑ new table draws a dish from G₀
-```
+$$P(\text{open new table}) = \frac{\theta + d \cdot T}{\theta + N} \qquad \text{(new table draws a dish from } G_0\text{)}$$
 
 **Why d changes everything.** Without the discount (d = 0), the new-table probability is θ/(θ + N) — a fixed fraction that decays to zero. With d > 0, the new-table probability is (θ + d·T)/(θ + N): as T grows, the numerator keeps pace with N, continuously creating room for new tables. This is the mechanism that produces O(θN^d) cluster growth.
 
@@ -151,9 +141,7 @@ Open a new table       with probability:  (θ + d · T) / (θ + N)
 
 A **language model** assigns probabilities to word sequences. The standard **n-gram** approach estimates:
 
-```
-P(w_i | w_{i-n+1}, ..., w_{i-1})   ← probability of word w_i given the n−1 preceding words
-```
+$$P(w_i \mid w_{i-n+1}, \ldots, w_{i-1}) \qquad \text{(probability of } w_i \text{ given the } n{-}1 \text{ preceding words)}$$
 
 **The sparsity problem.** With a vocabulary of size V = 17,000 and trigrams (n = 3), the context space has V² ≈ 290 million entries. Most are never observed in training. Direct maximum-likelihood estimation assigns zero probability to unseen trigrams and catastrophically overfits.
 
@@ -187,11 +175,9 @@ The hierarchy delivers **three benefits for free:**
 
 **Benefit 2 — Automatic count-adaptive weighting.** The interpolation coefficient toward the parent,
 
-```
-  λ_u  =  (θ_{|u|} + d_{|u|} · t_{u··}) / (θ_{|u|} + c_{u··})
-```
+$$\lambda_\mathbf{u} = \frac{\theta_{|\mathbf{u}|} + d_{|\mathbf{u}|} \cdot t_{\mathbf{u}\cdot\cdot}}{\theta_{|\mathbf{u}|} + c_{\mathbf{u}\cdot\cdot}}$$
 
-is large when c_{u··} is small (few observations → lean on prior) and approaches 0 when c_{u··} is large (abundant evidence → trust direct counts). The model continuously recalibrates trust in each context based purely on the observed data. This is principled Bayesian shrinkage, not a fixed discount schedule.
+is large when $c_{\mathbf{u}\cdot\cdot}$ is small (few observations → lean on prior) and approaches 0 when $c_{\mathbf{u}\cdot\cdot}$ is large (abundant evidence → trust direct counts). The model continuously recalibrates trust in each context based purely on the observed data. This is principled Bayesian shrinkage, not a fixed discount schedule.
 
 **Benefit 3 — Compositionality.** Each CRP node exposes a standard interface: takes G₀ (the parent distribution) as input, produces a posterior predictive p(w | context) as output. This modularity means nodes can be stacked to any depth, replaced, or connected to external components — the same property that makes HPYP work inside a larger model (next slide).
 
@@ -216,17 +202,7 @@ The probability of word w given context **u** is computed by a single recursive 
 
 All counts c and t are non-negative integers. The formula:
 
-```
-p(w | u)  =
-
-   (c_{uw} − d_{|u|} · t_{uw})             ← discounted direct evidence at node u
-   ──────────────────────────────
-     θ_{|u|} + c_{u··}
-
- +  (θ_{|u|} + d_{|u|} · t_{u··})          ← adaptive weight placed on parent
-   ──────────────────────────────  ×  p(w | π(u))   ← recurse up one level
-     θ_{|u|} + c_{u··}
-```
+$$p(w \mid \mathbf{u}) = \underbrace{\frac{c_{\mathbf{u}w} - d_{|\mathbf{u}|} \cdot t_{\mathbf{u}w}}{\theta_{|\mathbf{u}|} + c_{\mathbf{u}\cdot\cdot}}}_{\text{discounted direct evidence}} + \underbrace{\frac{\theta_{|\mathbf{u}|} + d_{|\mathbf{u}|} \cdot t_{\mathbf{u}\cdot\cdot}}{\theta_{|\mathbf{u}|} + c_{\mathbf{u}\cdot\cdot}}}_{\text{adaptive weight}} \cdot p(w \mid \pi(\mathbf{u}))$$
 
 The recursion bottoms out at the root (context ∅): p(w | ∅) = 1/V.
 
@@ -235,7 +211,7 @@ The recursion bottoms out at the root (context ∅): p(w | ∅) = 1/V.
 - **Second term:** the complementary weight (the two fractions always sum to 1) applied to the parent context — which itself recurses upward. When c_{**u**··} is small, this weight is near 1; when large, near 0.
 - **Memory:** the entire model state is the integer pairs (c_{**u**w}, t_{**u**w}) for each observed (context, word) pair. No probability vectors are ever stored. No matrix is formed.
 
-**The Kneser-Ney connection (Teh 2006, Theorem 1):** interpolated Kneser-Ney is exactly the HPYLM predictive distribution under two approximations: (1) t_{**u**w} := min(1, c_{**u**w}) and (2) θ_{|**u**|} := 0. Under these constraints the formula reduces algebraically to IKN. The twenty-year gold standard was performing approximate Bayesian inference in the HPYLM, without knowing it.
+**The Kneser-Ney connection (Teh 2006, Theorem 1):** interpolated Kneser-Ney is exactly the HPYLM predictive distribution under two approximations: (1) $t_{\mathbf{u}w} := \min(1, c_{\mathbf{u}w})$ and (2) $\theta_{|\mathbf{u}|} := 0$. Under these constraints the formula reduces algebraically to IKN. The twenty-year gold standard was performing approximate Bayesian inference in the HPYLM, without knowing it.
 
 ---
 
@@ -245,13 +221,11 @@ The recursion bottoms out at the root (context ∅): p(w | ∅) = 1/V.
 
 **Proof of concept: the Twitter-Network Topic Model (TNTM)** (Lim, Buntine, Chen & Du, 2016) embeds a full HPYP topic model inside a Gaussian Process (GP) social-network model:
 
-```
-Text & hashtags  ←  HPYP topic model
-                        ↕  coupled via per-author topic distributions ν_i
-Social graph     ←  GP over ν_i embeddings
-                     Link probability: x_ij ~ Bernoulli(sigmoid(Q_ij))
-                     Link strength:    Q_ij ~ GP(cosine_sim(ν_i, ν_j), RBF kernel)
-```
+Text & hashtags → HPYP topic model, coupled via per-author topic distributions $\nu_i$
+
+Social graph → GP over $\nu_i$ embeddings:
+
+$$x_{ij} \sim \text{Bernoulli}(\sigma(Q_{ij})), \qquad Q_{ij} \sim \text{GP}\!\left(\cos(\nu_i, \nu_j),\; \kappa_{\text{RBF}}\right)$$
 
 Here ν_i ∈ Δ^K is author i's topic distribution (a K-simplex vector inferred by the HPYP), which simultaneously serves as the GP kernel input. **Joint inference** alternates:
 - **Collapsed blocked Gibbs** on the HPYP side — integer arithmetic only, CPU-native
@@ -326,13 +300,11 @@ The TNTM (Slide 8) is a two-layer instance: HPYP (Layer 2) + GP (Layer 3), with 
 
 > The PYP base distribution G₀ is mathematically arbitrary. In the HPYLM it was Uniform(1/V). It can be anything — including the output of a neural encoder.
 
-```
-Encoder_ω : X  →  ℝ^d        ω = encoder parameters
-                               X = raw perceptual input (tokens, pixels, audio, ...)
-                               d = embedding dimension
+$$\text{Encoder}_\omega : X \to \mathbb{R}^d$$
 
-Leaf symbol distribution:  φ_k  ~  PYP(α, β, Encoder_ω(X))
-```
+where $\omega$ = encoder parameters, $X$ = raw perceptual input (tokens, pixels, audio, ...), $d$ = embedding dimension.
+
+$$\phi_k \sim \text{PYP}(\alpha,\, \beta,\, \text{Encoder}_\omega(X))$$
 
 Setting G₀ = Encoder_ω(X) turns each leaf PYP node into a **nonparametric cluster in neural embedding space**. The HPYP learns how many symbols are needed from data; the power-law prior ensures dominant symbols handle most observations with a long tail of rare but valid ones.
 
@@ -379,20 +351,15 @@ Note: θ_d here denotes a per-document topic distribution (a K-simplex vector); 
 
 **Symbols are necessary but not sufficient.** A symbolic AI system requires **relations** between concepts — edges in a knowledge graph, logical entailments, causal links, spatial and temporal orderings. Layer 3 models these over the concept embeddings ν_i produced by Layer 2.
 
-Let ν_i ∈ ℝ^K denote the topic (concept) distribution for entity i, inferred by the HPYP. Following the TNTM architecture:
+Let $\nu_i \in \mathbb{R}^K$ denote the topic (concept) distribution for entity $i$, inferred by the HPYP. Following the TNTM architecture:
 
-```
-Link strength:  Q_ij  ~  GP( μ_GP = cosine_sim(ν_i, ν_j),
-                              κ = RBF kernel over cosine similarities )
-
-Observed edge:  x_ij  ~  Bernoulli( sigmoid(Q_ij) )
-```
+$$Q_{ij} \sim \text{GP}\!\left(\mu = \cos(\nu_i, \nu_j),\; \kappa_{\text{RBF}}\right), \qquad x_{ij} \sim \text{Bernoulli}\!\left(\sigma(Q_{ij})\right)$$
 
 Here:
-- Q_ij ∈ ℝ: latent strength of the directed relation from entity i to entity j
-- cosine_sim(ν_i, ν_j) = (ν_i · ν_j) / (||ν_i|| · ||ν_j||): the GP prior mean
-- κ: covariance kernel encoding that entity pairs with similar concept overlap have correlated link probabilities
-- x_ij ∈ {0, 1}: observed edge (1 = relation present, 0 = absent)
+- $Q_{ij} \in \mathbb{R}$: latent strength of the directed relation from entity $i$ to entity $j$
+- $\cos(\nu_i, \nu_j) = \frac{\nu_i \cdot \nu_j}{\|\nu_i\| \cdot \|\nu_j\|}$: the GP prior mean
+- $\kappa$: covariance kernel encoding that entity pairs with similar concept overlap have correlated link probabilities
+- $x_{ij} \in \{0, 1\}$: observed edge (1 = relation present, 0 = absent)
 
 **Applications of Layer 3:**
 
@@ -458,24 +425,24 @@ At inference time with precomputed Layer 1 embeddings, Layers 2 and 3 are entire
 ## Slide 14 — What This All Means
 
 **The Pitman-Yor Process is the correct prior for symbolic knowledge:**
-- Unique type growth is O(θN^d), matching Zipf's law in language, ontologies, rule libraries, and any other domain with symbolic structure. The DP (d = 0) predicts O(θ log N) — qualitatively wrong at any real scale.
+- Unique type growth is $O(\theta N^d)$, matching Zipf's law in language, ontologies, rule libraries, and any other domain with symbolic structure. The DP ($d = 0$) predicts $O(\theta \log N)$ — qualitatively wrong at any real scale.
 
 **The HPYLM hierarchy delivers three properties for free — with only 2n scalar parameters:**
 1. **Regularization:** never assign zero probability; hierarchical fallback from trigram → bigram → unigram is automatic
-2. **Count-adaptive prior weighting:** the interpolation coefficient λ_u = (θ + d·t_{u··}) / (θ + c_{u··}) shrinks toward the parent exactly when evidence is sparse, and defers to direct counts when evidence is abundant
+2. **Count-adaptive prior weighting:** the interpolation coefficient $\lambda_\mathbf{u} = (\theta + d \cdot t_{\mathbf{u}\cdot\cdot}) / (\theta + c_{\mathbf{u}\cdot\cdot})$ shrinks toward the parent exactly when evidence is sparse, and defers to direct counts when evidence is abundant
 3. **Compositionality:** each CRP node exposes a standard interface (G₀ in, posterior predictive out) and can be chained, stacked, or connected to external components
 
 **The Kneser-Ney result validates the framework:**
-- IKN — the twenty-year empirical gold standard — is HPYLM under two approximations (t_{uw} := min(1, c_{uw}), θ := 0). Principled symbolic inference was right all along; the field had been approximating it without knowing it.
+- IKN — the twenty-year empirical gold standard — is HPYLM under two approximations ($t_{\mathbf{u}w} := \min(1, c_{\mathbf{u}w})$, $\theta := 0$). Principled symbolic inference was right all along; the field had been approximating it without knowing it.
 
 **HPYP is a composable building block, not just a language model:**
 - The TNTM (Lim et al., 2016) proves that a full HPYP topic model can be jointly trained with a GP social-network model in a single inference loop, achieving 40% lower perplexity than HDP-LDA.
 
 **One change turns HPYLM into neuro-symbolic AI:**
-- Replace G₀ (uniform over vocabulary) with Encoder_ω(X) (neural encoder output). Symbols are now grounded in perception, their inventory grows automatically with a power-law prior, and inference remains integer-arithmetic and CPU-native.
+- Replace $G_0$ (uniform over vocabulary) with $\text{Encoder}_\omega(X)$ (neural encoder output). Symbols are now grounded in perception, their inventory grows automatically with a power-law prior, and inference remains integer-arithmetic and CPU-native.
 
 **The inference state is just integers:**
-- The entire Layer 2 state is (c_{uw}, t_{uw}) pairs — no probability vectors, no matrices. New observations increment counts directly. The model updates continuously without retraining; there is no catastrophic forgetting.
+- The entire Layer 2 state is $(c_{\mathbf{u}w}, t_{\mathbf{u}w})$ pairs — no probability vectors, no matrices. New observations increment counts directly. The model updates continuously without retraining; there is no catastrophic forgetting.
 
 ---
 
